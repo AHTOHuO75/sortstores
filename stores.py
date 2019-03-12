@@ -2,6 +2,8 @@
 # -*- coding: UTF-8 -*-
 
 import os
+import copy
+import shutil
 from pprint import pprint
 
 
@@ -21,6 +23,12 @@ class Stores:
         self.fill_difs()
         self.fill_stack()
         self.fill_move()
+
+    def print_object(self,object,object_name,size=80):
+        print(object_name).upper()
+        print(object.__class__)
+        pprint(object,width=size)
+        print("\n")
 
     def get_size(self, dir_):
         total_size = 0
@@ -45,13 +53,13 @@ class Stores:
         for store in self.stores:
             tmp = {}
             for mbox in os.listdir(store):
-                if os.path.isdir(store + "/" + mbox) and (mbox != 'LISTS' and mbox != "PBXApps" and mbox != "Settings"  and mbox != "WebSkins") and (mbox.find('.macnt') != -1 or mbox.find('.mslc') != -1):
+                if os.path.isdir(store + "/" + mbox) and not os.path.islink(store + "/" + mbox) and (mbox != 'LISTS' and mbox != "PBXApps" and mbox != "Settings"  and mbox != "WebSkins") and (mbox.find('.macnt') != -1 or mbox.find('.mslc') != -1):
                     tmp[store + "/" + mbox] = self.get_size(store + "/" + mbox)
             self.mbox_sizes[store] = tmp
         return self.mbox_sizes
 
     def fill_difs(self):
-        self.difs = self.store_sizes
+        self.difs = copy.deepcopy(self.store_sizes)
         dif_ = sum(self.difs.values()) / len(self.difs.values())
         for store in self.difs:
             self.difs[store] = self.difs[store] - dif_
@@ -67,6 +75,8 @@ class Stores:
                     if size_ > diff:
                         continue
                     self.stack_[mbox] = size_
+                    self.store_sizes[store[0]] -= size_
+                    del self.mbox_sizes[store[0]][mbox]
                     diff -= size_
         return self.stack_
 
@@ -74,11 +84,15 @@ class Stores:
         tmp = sorted(self.stack_.items(), key=lambda x: x[1], reverse=True)
         minuses = self.get_minuses()
         minuses_len = len(self.get_minuses())
-        pprint(self.fill_stores_sizes())
-        pprint(minuses)
         for i in range(1,len(tmp)+1):
             index = i % minuses_len if i % minuses_len != 0 else minuses_len
             self.move_.append((tmp[i-1][0], minuses[index-1][0]))
-        pprint(self.move_)
+        #self.print_object(self.move_,'self.move_',120)
+        return self.move_
+
+    def move(self):
+        for from_,to_ in self.move_:
+            print("move "+from_+" "+to_)
+            shutil.move(from_,to_)
 
 
